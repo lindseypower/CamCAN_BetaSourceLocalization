@@ -1,0 +1,222 @@
+#!/usr/bin/env python
+
+# Import libraries
+import os
+import mne
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from mne.time_frequency import csd_morlet
+from mne.beamformer import make_dics, apply_dics_csd
+from mne.time_frequency import tfr_morlet
+import multiprocessing as mp
+import time
+
+mne.set_log_level('WARNING')
+
+def make_BF_map(subjectID):
+    """Top-level run script for making spectral events BF map from MEG data."""
+    print(subjectID)
+    #################################
+    # Variables
+
+    channelName = 'MEG0221'
+
+    # BF Analysis Paramaters
+    startTime = -1.25
+    endTime = -0.25
+    eventDuration = 0.4 # See distplot below for justification
+
+    # TFR analysis parameters
+    TFRfmin = 5
+    TFRfmax = 60
+    TFRfstep = 5
+
+    # DICS Settings
+    tmins = [0.0, -0.575] # Start of each window (active, baseline)
+    tstep = 0.4
+    fmin = 15
+    fmax = 30
+    numFreqBins = 10  # linear spacing
+    DICS_regularizaion = 0.5
+    data_decimation = 1
+
+    plotOK = False
+
+    ###############
+    # Setup paths and names for file
+    dataDir = '/home/timb/camcan/'
+    MEGDir = os.path.join(dataDir, 'proc_data/TaskSensorAnalysis_transdef')
+    outDir = os.path.join('/media/NAS/lpower/BetaSourceLocalization/preStimData',channelName, subjectID)
+    subjectsDir = os.path.join(dataDir, 'subjects/')
+
+    epochFifFilename = 'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo.fif'
+    epochFif = os.path.join(MEGDir, subjectID, epochFifFilename)
+
+    spectralEventsCSV = 'MEG0221_spectral_events_-1.0to1.0s.csv'
+    csvFile = os.path.join('/media/NAS/lpower/camcan/spectralEvents/task/', channelName, subjectID, spectralEventsCSV)
+
+    transFif = subjectsDir + 'coreg/sub-' + subjectID + '-trans.fif'
+    srcFif = subjectsDir + 'sub-' + subjectID + '/bem/sub-' + subjectID + '-5-src.fif'
+    bemFif = subjectsDir + 'sub-' + subjectID + '/bem/sub-' + subjectID + '-5120-bem-sol.fif'
+
+    # Files to make
+    stcFile = os.path.join(outDir,
+                           'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_preBetaEvents_DICS')
+    #stcFileNew = os.path.join(outDir,
+     #                           'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_moveBetaEvents_DICS')
+    
+    stcMorphFile = os.path.join(outDir,
+                                'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_preBetaEvents_DICS_fsaverage')
+    #stcMorphFileNew = os.path.join(outDir,
+     #                                'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_moveBetaEvents_DICS_fsaverage')
+    testCompleteFile = os.path.join(outDir,
+                           'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_preBetaEvents_DICS-lh.stc')
+    if os.path.exists(testCompleteFile):
+
+        return
+
+    else:
+
+        if not os.path.exists(outDir):
+            os.makedirs(outDir)
+
+        #####################################
+        # Pull events from CSV
+
+        # Read all transient events for subject
+        df = pd.read_csv(csvFile)
+        # Events that meet Shin criteria only
+        df1 = df[df['Outlier Event']]
+        # Freq range of interest
+        df2 = df1.drop(df1[df1['Peak Frequency'] < fmin].index)
+        df3 = df2.drop(df2[df2['Peak Frequency'] > fmax].index)
+        df4 = df3.drop(df3[df3['Peak Time'] > endTime].index)
+        newDf = df4.drop(df4[df4['Peak Time'] < startTime].index)
+
+        #Creates a dataframe with only the top 55 highest power bursts 
+        #If a subject has less than 55 bursts, they will be excluded
+        newDf = newDf.sort_values(by='Normalized Peak Power')
+        if newDf.size >= 55:
+            newDf = newDf.tail(n=55)
+        else:
+            print("Not enough bursts to create map.")
+            return
+
+        if plotOK:
+            # Raster plot of event onset and offset times
+            ax = sns.scatterplot(x='Event Onset Time', y='Trial', data=newDf)
+            sns.scatterplot(x='Event Offset Time', y='Trial', data=newDf, ax=ax)
+            plt.show()
+
+            # Distribution of event durations
+            sns.distplot(newDf['Event Duration'])
+            plt.show()
+            # Based on the distribution, an interval of 0-400 ms will include the full event duration in most cases
+
+        ##############################################
+        # Now do the DICS beamformer map calcaulation
+
+        # Read epochs
+        originalEpochs = mne.read_epochs(epochFif)
+
+        # Re-calculate epochs to have one per spectral event
+        numEvents = len(newDf)
+        print("Length of new DF:")
+        print(numEvents)
+        epochList = []
+        for e in np.arange(numEvents):
+            thisDf = newDf.iloc[e]
+            onsetTime = thisDf['Event Onset Time']
+            epoch = originalEpochs[thisDf['Trial']]
+            epochCrop = epoch.crop(onsetTime+tmins[1], onsetTime-tmins[1])
+            epochCrop = epochCrop.apply_baseline(baseline=(None,None))
+            # Fix epochCrops times array to be the same every time = (-.4, .4)
+            epochCrop.shift_time(tmins[1], relative=False)
+            if (epochCrop.tmin == -0.575 and epochCrop.tmax == 0.575):
+                epochList.append(epochCrop)
+        
+        epochs = mne.concatenate_epochs(epochList)
+        epochs.pick_types(meg=True)
+
+        '''
+        # Let's look at the TFR across sensors
+        magPicks = mne.pick_types(epochs.info, meg='mag', eeg=False, eog=False, stim=False, exclude='bads')
+        freqs = np.arange(TFRfmin, TFRfmax, TFRfstep)
+        n_cycles = freqs / 2.0
+        power, _ = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, picks=magPicks,
+                              use_fft=False, return_itc=True, decim=1, n_jobs=1)
+        #power.save(tfrFile, overwrite=True)
+        if plotOK:
+            power.plot_joint(baseline=(-0.4, 0), mode='mean',
+                             timefreqs = [(.2, 20)])
+        '''
+        # Read source space
+        src = mne.read_source_spaces(srcFif)
+        # Make forward solution
+        forward = mne.make_forward_solution(epochs.info,
+                                            trans=transFif, src=src, bem=bemFif,
+                                            meg=True, eeg=False)
+
+        # DICS Source Power example
+        # https://martinos.org/mne/stable/auto_examples/inverse/plot_dics_source_power.html#sphx-glr-auto-examples-inverse-plot-dics-source-power-py
+
+        # Compute DICS spatial filter and estimate source power.
+        stcs = []
+        epochsMAG = epochs.copy()
+        epochsMAG.pick_types(meg='mag')
+        for tmin in tmins:
+            csd = csd_morlet(epochsMAG, tmin=tmin, tmax=tmin + tstep, decim=data_decimation,
+                             frequencies=np.linspace(fmin, fmax, numFreqBins))
+            filters = make_dics(epochsMAG.info, forward, csd, reg=DICS_regularizaion)
+            stc, freqs = apply_dics_csd(csd, filters)
+            stcs.append(stc)
+
+        # Take difference between active and baseline, and mean across frequencies
+        ERS = np.log2(stcs[0].data / stcs[1].data)
+        a = stcs[0]
+        ERSstc = mne.SourceEstimate(ERS, vertices=a.vertices, tmin=a.tmin, tstep=a.tstep, subject=a.subject)
+        ERSband = ERSstc.mean()
+        ERSband.save(stcFile)
+
+        #ERSmorph = ERSband.morph(subject_to='fsaverage', subject_from='sub-' + subjectID, subjects_dir=subjectsDir)
+        morph = mne.compute_source_morph(ERSband, subject_from='sub-' + subjectID,
+                                         subject_to='fsaverage',
+                                         subjects_dir=subjectsDir)
+        ERSmorph = morph.apply(ERSband)
+        ERSmorph.save(stcMorphFile)
+
+        return
+
+if __name__ == "__main__":
+
+    # Find subjects to be analysed
+    homeDir = '/media/NAS/lpower/camcan/'
+    dataDir = homeDir + 'spectralEvents/task/MEG0221'
+    camcanCSV = dataDir + '/spectralEventAnalysis.csv'
+    subjectData = pd.read_csv(camcanCSV)
+    # Take only subjects with more than 55 epochs
+    subjectData = subjectData[subjectData['numEpochs'] > 55]
+    # Drop subjects with MR files missing
+    subjectData = subjectData.drop(subjectData[subjectData['bemExists'] == False].index)
+    subjectData = subjectData.drop(subjectData[subjectData['srcExists'] == False].index)
+    subjectData = subjectData.drop(subjectData[subjectData['transExists'] == False].index)
+    #subjectData = subjectData.drop(subjectData[subjectData['Event Stc Exists'] == True].index)
+
+    subjectIDs = subjectData['SubjectID'].tolist()
+    print(len(subjectIDs))
+    #subjectIDs =subjectIDs[0]
+
+    # Set up the parallel task pool to use all available processors
+    count = int(np.round(mp.cpu_count()*1/4))
+    pool = mp.Pool(processes=count)
+
+    # Run the jobs
+    pool.map(make_BF_map, subjectIDs)
+    #make_BF_map('CC110033')
+
+    # Or run one subject for testing purposes
+    #for x in subjectIDs: 
+     #   make_BF_map(x)
+
