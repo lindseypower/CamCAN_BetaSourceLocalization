@@ -26,12 +26,13 @@ def emptyroom_preprocess(subjectID):
 
     #Set the head transformation info in the empty room data to match the task data 
     raw_emptyroom.info['dev_head_t'] = raw.info['dev_head_t']
+    raw_emptyroom.info['dig'] = raw.info['dig']
 
     #Find bad channels and add them to info
     #The MNE documentation said to use 'meg' coordinate frame for empty-room noise and it crashes if I don't, but I'm not sure if this is going against the transformation that we've done
     raw_emptyroom.info['bads'] = []
     raw_check = raw_emptyroom.copy()
-    auto_noisy_chs, auto_flat_chs  = find_bad_channels_maxwell(raw_check, cross_talk=cross_talk, calibration=calibration,verbose=True, coord_frame='meg')
+    auto_noisy_chs, auto_flat_chs  = find_bad_channels_maxwell(raw_check, cross_talk=cross_talk, calibration=calibration,verbose=True, coord_frame='head')
     print(auto_noisy_chs)
     print(auto_flat_chs)
 
@@ -39,7 +40,7 @@ def emptyroom_preprocess(subjectID):
     raw_emptyroom.info['bads'] = bads
 
     #Maxfilter the empty room data
-    raw_emptyroom = mne.preprocessing.maxwell_filter(raw_emptyroom, cross_talk=cross_talk, calibration=calibration,verbose=True, coord_frame='meg')
+    raw_emptyroom = mne.preprocessing.maxwell_filter(raw_emptyroom, cross_talk=cross_talk, calibration=calibration,verbose=True, coord_frame='head', destination=(0,0,0.04))
 
     #Filter raw data 
     raw_emptyroom.filter(l_freq=None, h_freq=125)
