@@ -54,14 +54,13 @@ def make_BF_map(subjectID):
     epochFif = os.path.join(MEGDir, subjectID, epochFifFilename)
 
     spectralEventsCSV = "".join([channelName, '_spectral_events_-1.0to1.0s.csv'])
-    csvFile = os.path.join(outDir, spectralEventsCSV)
-
-    logFile = os.path.join(outDir, 'betaEvents_DICS.log')
-    mne.set_log_file(logFile, overwrite=True)
+    csvFile = os.path.join('/media/NAS/lpower/camcan/spectralEvents/rest/events_data/',channelName, subjectID,  spectralEventsCSV)
 
     transFif = subjectsDir + 'coreg/sub-' + subjectID + '-trans.fif'
     srcFif = subjectsDir + 'sub-' + subjectID + '/bem/sub-' + subjectID + '-5-src.fif'
     bemFif = subjectsDir + 'sub-' + subjectID + '/bem/sub-' + subjectID + '-5120-bem-sol.fif'
+
+    emptyroomFif = '/media/NAS/lpower/BetaSourceLocalization/emptyroomData/' + subjectID + '/emptyroom_trans-epo.fif' #Added this file **NEW**
 
     # Files to make
     stcFile = os.path.join(outDir,
@@ -76,6 +75,8 @@ def make_BF_map(subjectID):
         return
 
     else:
+        if not os.path.exists(outDir):
+            os.makedirs(outDir)
 
         #####################################
         # Pull events from CSV
@@ -153,6 +154,11 @@ def make_BF_map(subjectID):
         # DICS Source Power example
         # https://martinos.org/mne/stable/auto_examples/inverse/plot_dics_source_power.html#sphx-glr-auto-examples-inverse-plot-dics-source-power-py
 
+        #Compute noise csd from empty room data **NEW**
+        epochs_emptyroom = mne.read_epochs(emptyroomFif)
+        epochs_emptyroomMAG = epochs_emptyroom.pick_types(meg='mag')
+        csd_emptyroom = csd_morlet(epochs_emptyroomMAG, decim=data_decimation, frequencies= np.linspace(fmin, fmax, numFreqBins))
+
         # Compute DICS spatial filter and estimate source power.
         stcs = []
         epochsMAG = epochs.copy()
@@ -160,7 +166,7 @@ def make_BF_map(subjectID):
         for tmin in tmins:
             csd = csd_morlet(epochsMAG, tmin=tmin, tmax=tmin + tstep, decim=data_decimation,
                              frequencies=np.linspace(fmin, fmax, numFreqBins))
-            filters = make_dics(epochsMAG.info, forward, csd, reg=DICS_regularizaion)
+            filters = make_dics(epochsMAG.info, forward, csd, noise_csd=csd_emptyroom, reg=DICS_regularizaion)
             stc, freqs = apply_dics_csd(csd, filters)
             stcs.append(stc)
 
@@ -200,14 +206,17 @@ if __name__ == "__main__":
 
     subjectIDs = subjectData['SubjectID'].tolist()
 
+    ex_subs = ['CC520395','CC222326','CC310414','CC320568', 'CC320636', 'CC321595', 'CC510534','CC520136','CC520745', 'CC520775', 'CC621080', 'CC720304']
+    for x in ex_subs:
+        subjectIDs.remove(x)
+
     # Set up the parallel task pool to use all available processors
     count = int(np.round(mp.cpu_count()*1/4))
     pool = mp.Pool(processes=count)
 
     # Run the jobs
-    #pool.map(make_BF_map, subjectIDs)
-    #pool.map(make_BF_map, ['CC120376'])
+    pool.map(make_BF_map, subjectIDs)
 
     # Or run one subject for testing purposes
-    make_BF_map('CC621080')
+    #make_BF_map('CC110033')
 

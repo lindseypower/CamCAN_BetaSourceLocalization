@@ -5,9 +5,10 @@ import mne
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs, maxwell_filter, find_bad_channels_maxwell
 import multiprocessing as mp
 import logging
+import pandas as pd
 
 def emptyroom_preprocess(subjectID):
-
+    print(subjectID)
     #Filenames
     emptyRoomFif = '/home/timb/data/camcan/download/20170824/cc700/meg/pipeline/release004/emptyroom/' + subjectID + '/emptyroom_' + subjectID + '.fif'
     rawTaskFif = '/home/timb/camcan/megData/' + subjectID + '/task/task_raw.fif'
@@ -19,6 +20,13 @@ def emptyroom_preprocess(subjectID):
     epochFif = outDir + '/emptyroom_trans-epo.fif'
     evokedFif = outDir + '/emptyroom_trans-ave.fif'
     eveFif_all = outDir + '/emptyroom_trans-eve.fif'
+
+    if os.path.exists(evokedFif):
+        return
+
+    #Make the output directory 
+    if not os.path.exists(outDir):
+        os.makedirs(outDir)
 
     #Read in files 
     raw = mne.io.read_raw_fif(rawTaskFif)
@@ -48,14 +56,15 @@ def emptyroom_preprocess(subjectID):
 
     #There are no events in the raw data so need to make some - exact procedure used to process the raw data
     print(len(raw_emptyroom))
-    evs = mne.make_fixed_length_events(raw_emptyroom, start=30.0, duration=30.0)
+    print(subjectID)
+    evs = mne.make_fixed_length_events(raw_emptyroom, start=25.0, duration=25.0)
     print(evs)
     evs = evs[0,:]
     evs = evs.reshape([1,3])
     mne.write_events(eveFif_all, evs)
 
     # Epoch data based on button press
-    epochs = mne.Epochs(raw_emptyroom, evs, None, -30.0, 30.0,verbose=False, preload=True)
+    epochs = mne.Epochs(raw_emptyroom, evs, None, -25.0,25.0,verbose=False, preload=True)
     # Load or generate ICA decomposition for this dataset
     # performs ICA on data to remove artifacts according to rejection criteria
     if os.path.exists(icaFif):
@@ -100,6 +109,28 @@ def emptyroom_preprocess(subjectID):
     print (str(len(epochs)))
     print (str(len(ica.exclude)))
 
-    return epochs_clean
+    return 0
 
-epochs = emptyroom_preprocess('CC110033')
+if __name__ == "__main__":
+
+    # Find subjects to be analysed
+    homeDir = '/media/NAS/lpower/camcan/'
+    dataDir = homeDir + 'spectralEvents/task/MEG0221'
+    camcanCSV = dataDir + '/spectralEventAnalysis.csv'
+    subjectData = pd.read_csv(camcanCSV)
+    # Take only subjects with more than 55 epochs
+    subjectData = subjectData[subjectData['numEpochs'] > 55] 
+    subjectIDs = subjectData['SubjectID'].tolist()
+    print(len(subjectIDs))
+
+    # Set up the parallel task pool to use all available processors
+    count = int(np.round(mp.cpu_count()*1/4))
+    pool = mp.Pool(processes=count)
+    
+    #Subjects to exclude
+    ex_subs = ['CC520395','CC222326','CC310414','CC320568', 'CC320636', 'CC321595', 'CC510534','CC520136','CC520745', 'CC520775', 'CC621080', 'CC720304']
+    for x in ex_subs:
+        subjectIDs.remove(x)
+
+    # Run the jobs
+    pool.map(emptyroom_preprocess, subjectIDs)
