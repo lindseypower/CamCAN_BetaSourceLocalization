@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import make_inverse_operator, apply_inverse, source_band_induced_power
 from mne.time_frequency import tfr_morlet
 import multiprocessing as mp
 import time
@@ -41,12 +41,8 @@ def make_dSPM(subjectID):
     stcFile = os.path.join(outDir,'transdef_mf2pt2_rest_raw_rest_210s_cleaned-epo_restBetaEvents_dSPM')
     stcMorphFile = os.path.join(outDir,'transdef_mf2pt2_rest_raw_rest_210s_cleaned-epo_restBetaEvents_dSPM_fsaverage')
     testCompleteFile = os.path.join(outDir,'transdef_mf2pt2_rest_raw_rest_210s_cleaned-epo_restBetaEvents_dSPM-lh.stc')
-    if os.path.exists(testCompleteFile):
-        return
-
-    else:
-        if not os.path.exists(outDir):
-            os.makedirs(outDir)
+    if not os.path.exists(outDir):
+        os.makedirs(outDir)
             
     # Read all transient events for subject
     df = pd.read_csv(csvFile)
@@ -54,9 +50,7 @@ def make_dSPM(subjectID):
     df1 = df[df['Outlier Event']]
     # Freq range of interest
     df2 = df1.drop(df1[df1['Peak Frequency'] < fmin].index)
-    df3 = df2.drop(df2[df2['Peak Frequency'] > fmax].index)
-    df4 = df3.drop(df3[df3['Peak Time'] > endTime].index)
-    newDf = df4.drop(df4[df4['Peak Time'] < startTime].index)
+    newDf = df2.drop(df2[df2['Peak Frequency'] > fmax].index)
     
     #I only want to take the top 55 highest power beta events (based on pre-analysis calculations in R)
     #If the dataframe has less than 55 values, return 
@@ -112,17 +106,30 @@ def make_dSPM(subjectID):
     lambda2 = 1. / snr ** 2
     stc, residual = apply_inverse(evoked, inverse_operator, lambda2,method=method, pick_ori=None,return_residual=True, verbose=True)
     
-    #Save stc file 
-    stc.save(stcFile)
-    print(stcFile)
-    
+    # Compute a source estimate per frequency band
+    bands = dict(beta=[15,30])
+     
+    stc = source_band_induced_power(epochs, inverse_operator, bands, n_cycles=2,
+                                      use_fft=False, n_jobs=1)
+     
+    baselineData = stc['beta'].data[:,0:400]
+    activeData = stc['beta'].data[:,575:975]
+     
+    ERS = np.log2(activeData/baselineData)
+    ERSstc = mne.SourceEstimate(ERS, vertices=stc['beta'].vertices, tmin=stc['beta'].tmin, tstep=stc['beta'].tstep, subject=stc['beta'].subject)
+     
+    ERSband = ERSstc.mean()
+    ERSband.save(stcFile)
+     
     #Compute morph file and save
-    morph = mne.compute_source_morph(stc, subject_from='sub-' + subjectID,
-                                     subject_to='fsaverage',
-                                     subjects_dir=subjectsDir)
-    morph.save(stcMorphFile)
-    print(stcMorphFile)
-    return stc, morph
+    morph = mne.compute_source_morph(ERSband, subject_from='sub-' + subjectID,
+                                          subject_to='fsaverage',
+                                          subjects_dir=subjectsDir)
+    ERSmorph = morph.apply(ERSband)
+    ERSmorph.save(stcMorphFile)
+    #print(stcMorphFile)
+    return stc
+
     
 if __name__ == "__main__":
 
@@ -139,7 +146,6 @@ if __name__ == "__main__":
     subjectData = subjectData.drop(subjectData[subjectData['bemExists'] == False].index)
     subjectData = subjectData.drop(subjectData[subjectData['srcExists'] == False].index)
     subjectData = subjectData.drop(subjectData[subjectData['transExists'] == False].index)
-    subjectData = subjectData.drop(subjectData[subjectData['PreStim Stc Exists'] == True].index)
 
     subjectIDs = subjectData['SubjectID'].tolist()
     print(len(subjectIDs))
@@ -155,5 +161,5 @@ if __name__ == "__main__":
 
     # Run the jobs
     pool.map(make_dSPM, subjectIDs)
-    #stc, morph = make_dSPM('CC110033')
+    #stc= make_dSPM('CC110033')
     

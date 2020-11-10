@@ -192,7 +192,7 @@ if __name__ == "__main__":
     # Find subjects to be analysed
     homeDir = '/media/NAS/lpower'
     dataDir = homeDir + '/camcan/'
-    camcanCSV = dataDir + 'spectralEvents/rest/events_data/betaERD_ROI/spectralEventAnalysis.csv'
+    camcanCSV = dataDir + 'spectralEvents/rest/events_data/MEG0221/spectralEventAnalysis.csv'
     subjectData = pd.read_csv(camcanCSV)
 
     # Take only subjects with more than 55 epochs

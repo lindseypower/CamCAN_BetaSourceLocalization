@@ -5,12 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import make_inverse_operator, apply_inverse, source_band_induced_power
 from mne.time_frequency import tfr_morlet
 import multiprocessing as mp
 import time
 
-def make_dSPM(subjectID):
+def make_sLORETA(subjectID):
 
     #Localization parameters 
     fmin = 15
@@ -43,11 +43,10 @@ def make_dSPM(subjectID):
     stcFile = os.path.join(outDir,'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3e.4s_cleaned-epo_preBetaEvents_sLORETA')
     stcMorphFile = os.path.join(outDir,'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_preBetaEvents_sLORETA_fsaverage')
     testCompleteFile = os.path.join(outDir,'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_preBetaEvents_sLORETA-lh.stc')
-    if os.path.exists(testCompleteFile):
-        return
+    #if os.path.exists(testCompleteFile):
+     #   return
 
-    else:
-        if not os.path.exists(outDir):
+    if not os.path.exists(outDir):
             os.makedirs(outDir)
             
     # Read all transient events for subject
@@ -112,19 +111,30 @@ def make_dSPM(subjectID):
     method = "sLORETA"
     snr = 3.
     lambda2 = 1. / snr ** 2
-    stc, residual = apply_inverse(evoked, inverse_operator, lambda2,method=method, pick_ori=None,return_residual=True, verbose=True)
+
+    # Compute a source estimate per frequency band
+    bands = dict(beta=[15,30])
+
+    stc = source_band_induced_power(epochs, inverse_operator, bands, n_cycles=2,
+                                 use_fft=False, n_jobs=1)
+
+    baselineData = stc['beta'].data[:,0:400]
+    activeData = stc['beta'].data[:,575:975]
+
+    ERS = np.log2(activeData/baselineData)
+    ERSstc = mne.SourceEstimate(ERS, vertices=stc['beta'].vertices, tmin=stc['beta'].tmin, tstep=stc['beta'].tstep, subject=stc['beta'].subject)
     
-    #Save stc file 
-    stc.save(stcFile)
-    print(stcFile)
-    
+    ERSband = ERSstc.mean()
+    ERSband.save(stcFile)
+
     #Compute morph file and save
-    morph = mne.compute_source_morph(stc, subject_from='sub-' + subjectID,
+    morph = mne.compute_source_morph(ERSband, subject_from='sub-' + subjectID,
                                      subject_to='fsaverage',
                                      subjects_dir=subjectsDir)
-    morph.save(stcMorphFile)
-    print(stcMorphFile)
-    return stc, morph
+    ERSmorph = morph.apply(ERSband)
+    ERSmorph.save(stcMorphFile)
+    #print(stcMorphFile)
+    return stc
     
 if __name__ == "__main__":
 
@@ -147,11 +157,15 @@ if __name__ == "__main__":
     print(len(subjectIDs))
     print(subjectIDs)
 
+    ex_subs = ['CC520395','CC222326','CC310414','CC320568', 'CC320636', 'CC321595', 'CC510534','CC520136','CC520745', 'CC520775', 'CC621080', 'CC720304']
+    for x in ex_subs:
+        subjectIDs.remove(x)
+
     # Set up the parallel task pool to use all available processors
     count = int(np.round(mp.cpu_count()*1/4))
     pool = mp.Pool(processes=count)
 
     # Run the jobs
-    #pool.map(make_dSPM, subjectIDs)
-    stc, morph = make_dSPM('CC110033')
+    pool.map(make_sLORETA, subjectIDs)
+    #stc = make_dSPM('CC110033')
     
