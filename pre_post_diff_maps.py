@@ -9,13 +9,12 @@ subjectDir = '/home/timb/camcan/subjects/'
 
 #Pre-stim condition
 pre_dataDir = '/media/NAS/lpower/BetaSourceLocalization/preStimData/'+ channelName
-pre_stcPrefix = 'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_preBetaEvents_dSPM_fsaverage-lh.stc'
+pre_stcPrefix = 'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_preBetaEvents_sLORETA_fsaverage-lh.stc'
 
 #Post-stim condition
 post_dataDir = '/media/NAS/lpower/BetaSourceLocalization/postStimData/'+ channelName
-post_stcPrefix = 'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_postBetaEvents_dSPM_fsaverage-lh.stc'
-
-#Find all subject folders that exist
+post_stcPrefix = 'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_postBetaEvents_sLORETA_fsaverage-lh.stc'
+#Find all subject folders that exists
 subjects = os.listdir(pre_dataDir)
     
 # Loop over all subject folders
@@ -74,10 +73,10 @@ tstats_stc = diff_stc.copy()
 tstats_stc.data = tstats
 
 #Save and plot
-outFileName = '/media/NAS/lpower/BetaSourceLocalization/comparisonMaps/dSPM_pre_post_pvals'
+outFileName = '/media/NAS/lpower/BetaSourceLocalization/comparisonMaps/sLORETA_pre_post_pvals'
 pval_stc.save(outFileName)
 
-outFileName = '/media/NAS/lpower/BetaSourceLocalization/comparisonMaps/dSPM_pre_post_tstats'
+outFileName = '/media/NAS/lpower/BetaSourceLocalization/comparisonMaps/sLORETA_pre_post_tstats'
 tstats_stc.save(outFileName)
 
 #pval_stc.plot(surface='pial', hemi='both', subjects_dir=subjectDir, subject='fsaverage',

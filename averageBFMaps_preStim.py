@@ -9,7 +9,7 @@ import numpy as np
 #		/home/timb/camcan/spectralEvents
 
 # Set folders and files
-channelName = 'MEG0221'
+channelName = 'MEG1311'
 dataDir = '/media/NAS/lpower/BetaSourceLocalization/preStimData/'+ channelName +'/'
 subjectDir = '/home/timb/camcan/subjects/'
 stcPrefix = 'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_preBetaEvents_dSPM_fsaverage'
@@ -35,7 +35,6 @@ for subjectID in subjects:
 # Turn list of stc data elements into an array (participants x vertices x 1)
 stcArray = np.asarray(stcs)
 print(len(stcArray))
-
 
 # Average over participants and make an stc
 stcGAvgData = np.mean(stcArray, axis=0)

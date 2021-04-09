@@ -109,13 +109,11 @@ def make_sLORETA(subjectID):
     
     #Calculate the inverse solution using the MNE method
     method = "sLORETA"
-    snr = 3.
-    lambda2 = 1. / snr ** 2
 
     # Compute a source estimate per frequency band
     bands = dict(beta=[15,30])
 
-    stc = source_band_induced_power(epochs, inverse_operator, bands, n_cycles=2,
+    stc = source_band_induced_power(epochs, inverse_operator, bands, method=method, n_cycles=2,
                                  use_fft=False, n_jobs=1)
 
     baselineData = stc['beta'].data[:,0:400]

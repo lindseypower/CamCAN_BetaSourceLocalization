@@ -9,7 +9,7 @@ import numpy as np
 #		/home/timb/camcan/spectralEvents
 
 # Set folders and files
-channelName = 'MEG0221'
+channelName = 'MEG1311'
 dataDir = '/media/NAS/lpower/BetaSourceLocalization/restData/'+ channelName +'/'
 subjectDir = '/home/timb/camcan/subjects/'
 stcPrefix = 'transdef_mf2pt2_rest_raw_rest_210s_cleaned-epo_restBetaEvents_dSPM_fsaverage'
@@ -20,7 +20,7 @@ subjects = os.listdir(dataDir)
 # Loop over all subject folders
 stcs = []
 for subjectID in subjects:
-     
+      
     # Set file path for stc file (without Xh.stc)
     thisStcFile = os.path.join(dataDir, subjectID, stcPrefix)
      
@@ -29,6 +29,7 @@ for subjectID in subjects:
      
     # If file exists, add the stc data to a list
     if os.path.exists(fileCheckName):
+        print(subjectID)
         stc = mne.read_source_estimate(thisStcFile)
         stcs.append(stc.data)
      

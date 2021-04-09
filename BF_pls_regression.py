@@ -36,7 +36,7 @@ for x in ex_subs:
 channelName = 'MEG0221'
 dataDir = '/media/NAS/lpower/BetaSourceLocalization/restData/'+ channelName +'/'
 subjectDir = '/home/timb/camcan/subjects/'
-stcPrefix = 'transdef_mf2pt2_rest_raw_rest_210s_cleaned-epo_restBetaEvents_dSPM_fsaverage'
+stcPrefix = 'transdef_mf2pt2_rest_raw_rest_210s_cleaned-epo_restBetaEvents_DICS_fsaverage'
 
 # Loop over all subject folders
 stcs = []
@@ -58,7 +58,8 @@ plsr
 
 #save plsr files to directory
 plsrDir = '/media/NAS/lpower/BetaSourceLocalization/restData/'
-np.save(plsrDir+'dSPM_x_weights.npy',plsr.x_weights)
-np.save(plsrDir+'dSPM_x_scores.npy', plsr.x_scores)
-np.save(plsrDir+'dSPM_y_scores.npy',plsr.y_scores)
-np.save(plsrDir+'dSPM_y_loadings.npy',plsr.y_loadings)
+np.save(plsrDir+'x_weights.npy',plsr.x_weights)
+np.save(plsrDir+'x_scores.npy', plsr.x_scores)
+np.save(plsrDir+'y_scores.npy',plsr.y_scores)
+np.save(plsrDir+'y_loadings.npy',plsr.y_loadings)
+np.save(plsrDir+'pvals.npy',plsr.permres.pvals)

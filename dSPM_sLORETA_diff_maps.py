@@ -7,16 +7,15 @@ import scipy.stats as ss
 channelName = 'MEG0221'
 subjectDir = '/home/timb/camcan/subjects/'
 
-#Pre-stim condition
-pre_dataDir = '/media/NAS/lpower/BetaSourceLocalization/preStimData/'+ channelName
-pre_stcPrefix = 'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_preBetaEvents_sLORETA_fsaverage-lh.stc'
+#dSPM postStim data
+dataDir = '/media/NAS/lpower/BetaSourceLocalization/postStimData/'+ channelName
+dSPM_stcPrefix = 'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_postBetaEvents_dSPM_fsaverage-lh.stc'
 
-#Rest condition
-rest_dataDir = '/media/NAS/lpower/BetaSourceLocalization/restData/'+ channelName 
-rest_stcPrefix = 'transdef_mf2pt2_rest_raw_rest_210s_cleaned-epo_restBetaEvents_sLORETA_fsaverage-lh.stc'
+#sLORETA postStim data
+sLORETA_stcPrefix = 'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_postBetaEvents_sLORETA_fsaverage-lh.stc'
 
 #Find all subject folders that exist
-subjects = os.listdir(pre_dataDir)
+subjects = ['CC110033','CC210182','CC310086','CC420236','CC521040']
     
 # Loop over all subject folders
 diffs = []
@@ -24,22 +23,22 @@ sub_count = 0;
 for subjectID in subjects:
      
     # Set file path for stc file
-    preStcFile = os.path.join(pre_dataDir, subjectID, pre_stcPrefix)
-    restStcFile = os.path.join(rest_dataDir, subjectID, rest_stcPrefix)
+    dSPMStcFile = os.path.join(dataDir, subjectID, dSPM_stcPrefix)
+    sLORETAStcFile = os.path.join(dataDir, subjectID, sLORETA_stcPrefix)
 
     # If files exist read in premovement and rest source estimates 
-    if os.path.exists(preStcFile) and os.path.exists(restStcFile):
-        pre_stc = mne.read_source_estimate(preStcFile)
-        rest_stc = mne.read_source_estimate(restStcFile)
+    #if os.path.exists(dSPMStcFile) and os.path.exists(sLORETAStcFile):
+    print(dSPMStcFile)
+    dSPM_stc = mne.read_source_estimate(dSPMStcFile)
+    sLORETA_stc = mne.read_source_estimate(sLORETAStcFile)
         
-        #Take the difference between estimates (rest - pre-move)
-        diff_stc = rest_stc.__sub__(pre_stc)
-        #save source estimate data for this subject to a list
-        diff_vertex_vals = diff_stc.data
-        diffs.append(diff_vertex_vals)
-        print(sub_count)
-        sub_count = sub_count + 1
-
+    #Take the difference between estimates (dSPM - sLORETA)
+    diff_stc = dSPM_stc.__sub__(sLORETA_stc)
+    #save source estimate data 
+    diffFile = os.path.join(dataDir, subjectID, 'dSPM-sLORETA_diff')
+    print(diffFile)
+    diff_stc.save(diffFile)
+'''
 #reformat difference arrays for computing t-tests for each vertex
 diffs = np.asarray(diffs)
 diffs = np.reshape(diffs, (sub_count,20484))
@@ -63,20 +62,13 @@ pvals = np.asarray(pvals)
 pvals = np.reshape(pvals, (20484,1))
 pval_stc = diff_stc.copy()
 pval_stc.data = pvals
-
-#Do the same thing with the t-stat 
-tstats = np.asarray(tstats)
-tstats = np.reshape(tstats, (20484,1))
-tstats_stc = diff_stc.copy()
-tstats_stc.data = tstats
-
 #Save and plot
 outFileName = '/media/NAS/lpower/BetaSourceLocalization/comparisonMaps/sLORETA_pre_rest_pvals'
 pval_stc.save(outFileName)
 
 outFileName = '/media/NAS/lpower/BetaSourceLocalization/comparisonMaps/sLORETA_pre_rest_tstats'
 tstats_stc.save(outFileName)
-
+'''
 #pval_stc.plot(surface='pial', hemi='both', subjects_dir=subjectDir, subject='fsaverage',
  #       backend='mayavi', time_viewer=True, clim=clim)
 

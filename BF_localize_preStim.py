@@ -23,7 +23,7 @@ def make_BF_map(subjectID):
     #################################
     # Variables
 
-    channelName = 'MEG0221'
+    channelName = 'MEG1311'
 
     # BF Analysis Paramaters
     startTime = -1.25
@@ -58,8 +58,8 @@ def make_BF_map(subjectID):
 
     emptyroomFif = '/media/NAS/lpower/BetaSourceLocalization/emptyroomData/' + subjectID + '/emptyroom_trans-epo.fif' #Added this file **NEW**
 
-    spectralEventsCSV = 'MEG0221_spectral_events_-1.0to1.0s.csv'
-    csvFile = os.path.join('/media/NAS/lpower/camcan/spectralEvents/task/', channelName, subjectID, spectralEventsCSV)
+    spectralEventsCSV = subjectID +'_MEG1311_spectral_events.csv'
+    csvFile = os.path.join('/media/NAS/bbrady/random old results/spectralEvents/', subjectID, spectralEventsCSV)
 
     transFif = subjectsDir + 'coreg/sub-' + subjectID + '-trans.fif'
     srcFif = subjectsDir + 'sub-' + subjectID + '/bem/sub-' + subjectID + '-5-src.fif'

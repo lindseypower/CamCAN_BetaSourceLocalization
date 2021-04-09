@@ -10,12 +10,12 @@ import pandas as pd
 #		/home/timb/camcan/spectralEvents
 
 # Some variables 
-min_age = 47
-max_age = 60
-filename ='47-60_dSPM_stcGavg'
+min_age = 61
+max_age = 74
+filename ='61-74_dSPM_stcGavg'
 
 # Set folders and files
-dataDir = '/media/NAS/lpower/BetaSourceLocalization/restData/MEG0221/'
+dataDir = '/media/NAS/lpower/BetaSourceLocalization/restData/MEG1311/'
 subjectDir = '/home/timb/camcan/subjects/'
 stcPrefix = '/transdef_mf2pt2_rest_raw_rest_210s_cleaned-epo_restBetaEvents_dSPM_fsaverage'
 

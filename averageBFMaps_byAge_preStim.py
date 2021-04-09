@@ -10,14 +10,14 @@ import pandas as pd
 #		/home/timb/camcan/spectralEvents
 
 # Some variables 
-min_age = 61
-max_age = 74
-filename = '61-74_dSPM_stcGavg'
+min_age = 18
+max_age = 32
+filename = '18-32_DICS_stcGavg'
 
 # Set folders and files
-dataDir = '/media/NAS/lpower/BetaSourceLocalization/preStimData/MEG0221/'
+dataDir = '/media/NAS/lpower/BetaSourceLocalization/preStimData/MEG1311/'
 subjectDir = '/home/timb/camcan/subjects/'
-stcPrefix = '/transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_preBetaEvents_dSPM_fsaverage'
+stcPrefix = '/transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_preBetaEvents_DICS_fsaverage'
 
 # Find subjects to be analysed
 datDir = '/media/NAS/lpower/camcan/'

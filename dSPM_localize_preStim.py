@@ -20,7 +20,7 @@ def make_dSPM(subjectID):
     tmins = [0.0, -0.575]
 
     # Setup paths and names for file
-    channelName = 'MEG0221'
+    channelName = 'MEG1311'
 
     dataDir = '/home/timb/camcan/'
     MEGDir = os.path.join(dataDir, 'proc_data/TaskSensorAnalysis_transdef')
@@ -30,8 +30,8 @@ def make_dSPM(subjectID):
     epochFifFilename = 'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo.fif'
     epochFif = os.path.join(MEGDir, subjectID, epochFifFilename)
      
-    spectralEventsCSV = 'MEG0221_spectral_events_-1.0to1.0s.csv'
-    csvFile = '/media/NAS/lpower/camcan/spectralEvents/task/'+  channelName + '/'+ subjectID + '/' + spectralEventsCSV
+    spectralEventsCSV = subjectID + '_MEG1311_spectral_events.csv'
+    csvFile = '/media/NAS/bbrady/random old results/spectralEvents/'+ subjectID + '/' + spectralEventsCSV
      
     transFif = subjectsDir + 'coreg/sub-' + subjectID + '-trans.fif'
     srcFif = subjectsDir + 'sub-' + subjectID + '/bem/sub-' + subjectID + '-5-src.fif'

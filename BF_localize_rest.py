@@ -23,7 +23,7 @@ def make_BF_map(subjectID):
     #################################
     # Variables
 
-    channelName = 'MEG0221'
+    channelName = 'MEG1311'
 
     # Analysis Paramaters for Picking Transient Events      
     fmin = 15               # NOTE: no constraints on time for the resting data (across entire time interval)
@@ -53,8 +53,8 @@ def make_BF_map(subjectID):
     epochFifFilename = 'transdef_mf2pt2_rest_raw_rest_210s_cleaned-epo.fif'
     epochFif = os.path.join(MEGDir, subjectID, epochFifFilename)
 
-    spectralEventsCSV = "".join([channelName, '_spectral_events_-1.0to1.0s.csv'])
-    csvFile = os.path.join('/media/NAS/lpower/camcan/spectralEvents/rest/events_data/',channelName, subjectID,  spectralEventsCSV)
+    spectralEventsCSV = subjectID + '_MEG1311_spectral_events.csv'
+    csvFile = os.path.join('/media/NAS/bbrady/random old results/spectralEventsRest/', subjectID,  spectralEventsCSV)
 
     transFif = subjectsDir + 'coreg/sub-' + subjectID + '-trans.fif'
     srcFif = subjectsDir + 'sub-' + subjectID + '/bem/sub-' + subjectID + '-5-src.fif'

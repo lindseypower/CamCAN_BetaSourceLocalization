@@ -9,7 +9,7 @@ import numpy as np
 #		/home/timb/camcan/spectralEvents
 
 # Set folders and files
-channelName = 'MEG0221'
+channelName = 'MEG1311'
 dataDir = '/media/NAS/lpower/BetaSourceLocalization/postStimData/'+ channelName +'/'
 subjectDir = '/home/timb/camcan/subjects/'
 stcPrefix = 'transdef_transrest_mf2pt2_task_raw_buttonPress_duration=3.4s_cleaned-epo_postBetaEvents_dSPM_fsaverage'

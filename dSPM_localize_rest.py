@@ -18,7 +18,7 @@ def make_dSPM(subjectID):
     tmins = [0.0, -0.575]
 
     # Setup paths and names for file
-    channelName = 'MEG0221'
+    channelName = 'MEG1311'
 
     dataDir = '/home/timb/camcan/'
     MEGDir = os.path.join('/media/NAS/lpower/camcan/spectralEvents/rest/proc_data')
@@ -28,8 +28,8 @@ def make_dSPM(subjectID):
     epochFifFilename = 'transdef_mf2pt2_rest_raw_rest_210s_cleaned-epo.fif'
     epochFif = os.path.join(MEGDir, subjectID, epochFifFilename)
      
-    spectralEventsCSV = 'MEG0221_spectral_events_-1.0to1.0s.csv'
-    csvFile = '/media/NAS/lpower/camcan/spectralEvents/rest/events_data/'+  channelName + '/'+ subjectID + '/' + spectralEventsCSV
+    spectralEventsCSV = subjectID + '_MEG1311_spectral_events.csv'
+    csvFile = '/media/NAS/bbrady/random old results/spectralEventsRest/'+ subjectID + '/' + spectralEventsCSV
      
     transFif = subjectsDir + 'coreg/sub-' + subjectID + '-trans.fif'
     srcFif = subjectsDir + 'sub-' + subjectID + '/bem/sub-' + subjectID + '-5-src.fif'
@@ -104,7 +104,6 @@ def make_dSPM(subjectID):
     method = "dSPM"
     snr = 3.
     lambda2 = 1. / snr ** 2
-    stc, residual = apply_inverse(evoked, inverse_operator, lambda2,method=method, pick_ori=None,return_residual=True, verbose=True)
     
     # Compute a source estimate per frequency band
     bands = dict(beta=[15,30])
